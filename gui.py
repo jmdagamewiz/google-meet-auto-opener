@@ -258,102 +258,13 @@ class MainWindow(QMainWindow):
     def add_room_clicked(self, mouse_click):
         print("Add Room")
 
-        self.info_widget = QWidget()
-        self.info_widget.setObjectName("info")
-
-        self.info_widget.setStyleSheet("""
-
-                    QWidget#info {
-                        background-color: white;
-                        border: 1px solid gray
-                    }
-
-                    QLabel#head {
-                        font-size: 20px;
-                    }
-
-                    QPushButton#day {
-                        background-color: light gray;
-                    }
-
-                """)
-
-        self.info_widget.setFixedSize(QSize(400, 300))
-        flags = Qt.WindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
-        self.info_widget.setWindowFlags(flags)
+        self.add_room_window = AddRoomWindow()
 
         point = QPoint(50, 50)
         global_point = self.mapToGlobal(point)
+        self.add_room_window.move(global_point)
 
-        self.info_widget.move(global_point)
-
-        head_label = QLabel("Create Room:")
-        head_label.setMaximumHeight(20)
-        head_label.setObjectName("head")
-
-        head_hbox = QHBoxLayout()
-        head_hbox.addWidget(head_label)
-
-        room_name_label = QLabel("Room Name: ")
-        room_name_input = QLineEdit()
-
-        room_code_label = QLabel("Room Code: ")
-        room_code_input = QLineEdit()
-
-        room_time_label = QLabel("Room Time: ")
-        room_time_input = QTimeEdit()
-
-        room_day_label = QLabel("Room Day: ")
-
-        hbox = QHBoxLayout()
-        hbox.setContentsMargins(0, 0, 0, 0)
-
-        self.button_group = QButtonGroup()
-        self.button_group.setExclusive(False)
-
-        days = ["M", "T", "W", "Th", "F", "Sa", "Su"]
-        for i in range(len(days)):
-            day_button = QPushButton(days[i])
-            self.button_group.addButton(day_button, i)
-            day_button.setObjectName("day")
-            day_button.setCheckable(True)
-            day_button.clicked.connect(lambda: self.change_color(day_button))
-            hbox.addWidget(day_button)
-
-        days_button_group = QWidget()
-        days_button_group.setLayout(hbox)
-
-        room_day_input = days_button_group
-
-        form_layout = QFormLayout()
-        form_layout.setVerticalSpacing(10)
-        form_layout.addRow(room_name_label, room_name_input)
-        form_layout.addRow(room_code_label, room_code_input)
-        form_layout.addRow(room_time_label, room_time_input)
-        form_layout.addRow(room_day_label, room_day_input)
-
-        save_button = QPushButton("Save")
-        save_button.clicked.connect(self.save_info)
-
-        cancel_button = QPushButton("Cancel")
-        cancel_button.clicked.connect(self.close_info_widget)
-
-        button_hbox = QHBoxLayout()
-        button_hbox.addWidget(save_button)
-        button_hbox.addWidget(cancel_button)
-
-        vbox = QVBoxLayout()
-        vbox.addSpacing(4)
-        vbox.addLayout(head_hbox)
-        vbox.addSpacing(40)
-        vbox.addLayout(form_layout)
-        vbox.addLayout(button_hbox)
-
-        self.info_widget.setLayout(vbox)
-
-        # locks main window until user exits info widget
-        self.info_widget.setWindowModality(Qt.ApplicationModal)
-        self.info_widget.show()
+        self.add_room_window.show()
 
     def save_info(self):
         room = self.get_info()
@@ -380,6 +291,136 @@ class MainWindow(QMainWindow):
 
     def close_info_widget(self):
         self.info_widget.hide()
+
+
+class AddRoomWindow(QWidget):
+
+    def __init__(self):
+        super().__init__()
+
+        self.setObjectName("main")
+        self.setStyleSheet("""
+            
+            QWidget#main {
+                background-color: white;
+                border: 1px solid gray;
+            }
+        
+            QLabel#head {
+                font-size: 20px;
+            }
+
+            QPushButton#day {
+                background-color: light gray;
+            }
+
+        """)
+        self.setAttribute(Qt.WA_StyledBackground)
+
+        self.setFixedSize(QSize(400, 300))
+        flags = Qt.WindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.setWindowFlags(flags)
+
+        head_label = QLabel("Create Room:")
+        head_label.setMaximumHeight(20)
+        head_label.setObjectName("head")
+
+        head_hbox = QHBoxLayout()
+        head_hbox.addWidget(head_label)
+
+        self.room_name_label = QLabel("Room Name: ")
+        self.room_name_input = QLineEdit()
+
+        self.room_code_label = QLabel("Room Code: ")
+        self.room_code_input = QLineEdit()
+
+        self.room_time_label = QLabel("Room Time: ")
+        self.room_time_input = QTimeEdit()
+
+        self.room_day_label = QLabel("Room Day: ")
+
+        hbox = QHBoxLayout()
+        hbox.setContentsMargins(0, 0, 0, 0)
+
+        self.button_group = QButtonGroup()
+        self.button_group.setExclusive(False)
+
+        days = ["M", "T", "W", "Th", "F", "Sa", "Su"]
+        for i in range(len(days)):
+            day_button = QPushButton(days[i])
+            self.button_group.addButton(day_button, i)
+            day_button.setObjectName("day")
+            day_button.setCheckable(True)
+            day_button.clicked.connect(lambda: self.change_color(day_button))
+            hbox.addWidget(day_button)
+
+        self.room_day_input = QWidget()
+        self.room_day_input.setLayout(hbox)
+
+        form_layout = QFormLayout()
+        form_layout.setVerticalSpacing(10)
+        form_layout.addRow(self.room_name_label, self.room_name_input)
+        form_layout.addRow(self.room_code_label, self.room_code_input)
+        form_layout.addRow(self.room_time_label, self.room_time_input)
+        form_layout.addRow(self.room_day_label, self.room_day_input)
+
+        save_button = QPushButton("Save")
+        save_button.clicked.connect(self.save_info)
+
+        cancel_button = QPushButton("Cancel")
+        cancel_button.clicked.connect(self.close_window)
+
+        button_hbox = QHBoxLayout()
+        button_hbox.addWidget(save_button)
+        button_hbox.addWidget(cancel_button)
+
+        vbox = QVBoxLayout()
+        vbox.addSpacing(4)
+        vbox.addLayout(head_hbox)
+        vbox.addSpacing(40)
+        vbox.addLayout(form_layout)
+        vbox.addLayout(button_hbox)
+
+        self.setLayout(vbox)
+
+        # locks main window until user exits info widget
+        self.setWindowModality(Qt.ApplicationModal)
+
+    def change_color(self, button):
+
+        if button.isChecked():
+            button.setStyleSheet("background-color: light blue")
+        else:
+            button.setStyleSheet("background-color: light gray")
+
+    def save_info(self):
+        room = self.get_info()
+
+        print("Saving Info...")
+        print(f"Room Name: {room['room_name']}")
+        print(f"Room Code: {room['room_code']}")
+        print(f"Room Time: {room['room_time']}")
+        print(f"Room Days: {room['room_days']}")
+
+    def get_info(self):
+        inputs = self.findChildren(QLineEdit)
+
+        days = []
+        for button in self.button_group.buttons():
+            if button.isChecked():
+                days.append(button.text())
+
+        room = {
+            "room_name": self.room_name_input.text(),
+            "room_code": self.room_code_input.text(),
+            "room_time": self.room_time_input.text(),
+            "room_days": days
+        }
+
+        return room
+
+    def close_window(self):
+        self.hide()
 
 
 app = QApplication(sys.argv)
