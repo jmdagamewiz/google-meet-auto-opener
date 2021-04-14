@@ -6,6 +6,7 @@ import sys
 
 
 # TODO: dynamically add EditRoomFrame after a room is created in AddRoomWindow
+# TODO: create scroll area for the main window
 
 
 class MainWindow(QMainWindow):
@@ -29,7 +30,7 @@ class MainWindow(QMainWindow):
 
     def create_window_contents(self):
 
-        self.room_frame = EditRoomFrame()
+        self.room_frame = EditRoomFrame("Physics", "xxx-yyyy-zzz", "7:30 AM", ["T", "Th", "F"])
         self.add_room_frame = AddRoomFrame()
 
         self.grid_layout = QGridLayout()
@@ -48,8 +49,13 @@ class MainWindow(QMainWindow):
 
 class EditRoomFrame(QFrame):
 
-    def __init__(self):
+    def __init__(self, room_title, room_code, room_time, room_days_list):
         super().__init__()
+
+        self.room_title = room_title
+        self.room_code = room_code
+        self.room_time = room_time
+        self.room_days_list = room_days_list
 
         self.setObjectName("main")
         self.setStyleSheet("""
@@ -93,7 +99,7 @@ class EditRoomFrame(QFrame):
         self.mousePressEvent = self.room_frame_clicked
         self.setCursor(QCursor(Qt.PointingHandCursor))
 
-        self.room_title_label = QLabel("Physics")
+        self.room_title_label = QLabel(self.room_title)
         self.room_title_label.setObjectName("roomTitle")
 
         self.vbox = QVBoxLayout()
@@ -104,11 +110,14 @@ class EditRoomFrame(QFrame):
         self.room_header_widget.setObjectName("header")
         self.room_header_widget.setLayout(self.vbox)
 
-        self.room_code_label = QLabel("xxx-yyyy-zzz")
+        self.room_code_label = QLabel(self.room_code)
         self.room_code_label.setObjectName("code")
-        self.room_time_label = QLabel("7:30 AM")
+        self.room_time_label = QLabel(self.room_time)
         self.room_time_label.setObjectName("time")
-        self.room_day_label = QLabel("M T W Th F Sa Su")
+
+        days_string = " ".join(self.room_days_list)
+
+        self.room_day_label = QLabel(days_string)
         self.room_day_label.setObjectName("days")
 
         self.body_vbox = QVBoxLayout()
