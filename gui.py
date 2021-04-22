@@ -1,50 +1,10 @@
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QGridLayout, QFrame, QLabel, QVBoxLayout, QFormLayout
-from PyQt5.QtWidgets import QLineEdit, QHBoxLayout, QPushButton, QStyle, QTimeEdit, QButtonGroup
-from PyQt5.QtCore import QSize, Qt, QPoint
+from PyQt5.QtWidgets import QLineEdit, QHBoxLayout, QPushButton, QStyle, QTimeEdit, QButtonGroup, QScrollArea
+from PyQt5.QtCore import QSize, Qt, QPoint, QTime
 from PyQt5.QtGui import QCursor
 import sys
 
-
-# TODO: dynamically add EditRoomFrame after a room is created in AddRoomWindow
-# TODO: create scroll area for the main window
-
-
-class MainWindow(QMainWindow):
-
-    def __init__(self):
-        super().__init__()
-
-        stylesheet = """
-        
-            QMainWindow {
-                background-color: white;
-            }
-                        
-        """
-
-        self.setFixedSize(QSize(500, 400))
-        self.setWindowTitle("Google Meet Auto Joiner")
-        self.setStyleSheet(stylesheet)
-
-        self.create_window_contents()
-
-    def create_window_contents(self):
-
-        self.room_frame = EditRoomFrame("Physics", "xxx-yyyy-zzz", "7:30 AM", ["T", "Th", "F"])
-        self.add_room_frame = AddRoomFrame()
-
-        self.grid_layout = QGridLayout()
-        self.grid_layout.setVerticalSpacing(0)
-        self.grid_layout.setContentsMargins(0, 10, 0, 0)
-
-        self.grid_layout.addWidget(self.room_frame, 0, 0)
-        self.grid_layout.addWidget(self.add_room_frame, 0, 1)
-        self.grid_layout.addWidget(QWidget(), 1, 0)
-
-        self.center_widget = QWidget()
-        self.center_widget.setObjectName("center")
-        self.center_widget.setLayout(self.grid_layout)
-        self.setCentralWidget(self.center_widget)
+import math
 
 
 class EditRoomFrame(QFrame):
@@ -93,8 +53,8 @@ class EditRoomFrame(QFrame):
         """)
 
         self.setFrameStyle(QFrame.StyledPanel)
-        self.setMaximumWidth(240)
-        self.setMaximumHeight(150)
+        self.setFixedWidth(240)
+        self.setFixedHeight(150)
         self.setLineWidth(1)
         self.mousePressEvent = self.room_frame_clicked
         self.setCursor(QCursor(Qt.PointingHandCursor))
@@ -141,12 +101,25 @@ class EditRoomFrame(QFrame):
 
     def room_frame_clicked(self, mouse_click):
 
-        self.edit_room_window = EditRoomWindow()
+        self.edit_room_window = EditRoomWindow(self)
 
         point = QPoint(50, 50)
         global_point = self.parent().mapToGlobal(point)
         self.edit_room_window.move(global_point)
         self.edit_room_window.show()
+
+        self.edit_room_window.room_name_input.setText(self.room_title)
+        self.edit_room_window.room_code_input.setText(self.room_code)
+
+        time = QTime.fromString(self.room_time, "h:mm AP")
+        self.edit_room_window.room_time_input.setTime(time)
+
+        buttons = self.edit_room_window.button_group.buttons()
+
+        for i in range(len(self.room_days_list)):
+            for j in range(len(buttons)):
+                if buttons[j].text() == self.room_days_list[i]:
+                    buttons[j].setChecked(True)
 
 
 class AddRoomFrame(QFrame):
@@ -155,8 +128,8 @@ class AddRoomFrame(QFrame):
         super().__init__()
 
         self.setFrameStyle(QFrame.StyledPanel)
-        self.setMaximumWidth(240)
-        self.setMaximumHeight(150)
+        self.setFixedWidth(240)
+        self.setFixedHeight(150)
         self.setLineWidth(1)
         self.mousePressEvent = self.add_room_clicked
         self.setCursor(QCursor(Qt.PointingHandCursor))
@@ -317,10 +290,10 @@ class RoomWindow(QWidget):
         room = self.get_info()
 
         print("Saving Info...")
-        print(f"Room Name: {room['room_name']}")
-        print(f"Room Code: {room['room_code']}")
-        print(f"Room Time: {room['room_time']}")
-        print(f"Room Days: {room['room_days']}")
+        print(f"Room Name: {room['name']}")
+        print(f"Room Code: {room['code']}")
+        print(f"Room Time: {room['time']}")
+        print(f"Room Days: {room['days']}")
 
     def get_info(self):
         inputs = self.findChildren(QLineEdit)
@@ -331,10 +304,10 @@ class RoomWindow(QWidget):
                 days.append(button.text())
 
         room = {
-            "room_name": self.room_name_input.text(),
-            "room_code": self.room_code_input.text(),
-            "room_time": self.room_time_input.text(),
-            "room_days": days
+            "name": self.room_name_input.text(),
+            "code": self.room_code_input.text(),
+            "time": self.room_time_input.text(),
+            "days": days
         }
 
         return room
@@ -345,12 +318,84 @@ class RoomWindow(QWidget):
 
 class EditRoomWindow(RoomWindow):
 
-    def __init__(self):
+    def __init__(self, edit_room_frame):
 
         header_title = "Edit Room Info: "
         super().__init__(header_title)
+        self.edit_room_frame = edit_room_frame
+        self.delete_room_button.clicked.connect(self.delete_frame)
 
         self.delete_room_button.show()
+
+    def save_info(self):
+        room = self.get_info()
+
+        print(room["name"], room["code"], room["time"], room["days"])
+
+        # Updates attributes of EditRoomFrame instance
+        self.edit_room_frame.room_title = room["name"]
+        self.edit_room_frame.room_code = room["code"]
+        self.edit_room_frame.room_time = room["time"]
+        self.edit_room_frame.room_days_list = room["days"]
+
+        self.edit_room_frame.room_title_label.setText(room["name"])
+        self.edit_room_frame.room_code_label.setText(room["code"])
+        self.edit_room_frame.room_time_label.setText(room["time"])
+
+        days_string = " ".join(room["days"])
+
+        self.edit_room_frame.room_day_label.setText(days_string)
+
+        self.close_window()
+
+    def delete_frame(self):
+        self.edit_room_frame.deleteLater()
+
+        parent_widget = self.edit_room_frame.parentWidget()
+
+        edit_room_frames_list = parent_widget.findChildren(EditRoomFrame)
+
+        edit_room_frames_list.remove(self.edit_room_frame)
+
+        for frame in edit_room_frames_list:
+            frame.deleteLater()
+
+        children_count = 2
+
+        for frame in edit_room_frames_list:
+            print(frame.room_title_label.text())
+
+        for frame in edit_room_frames_list:
+            pos = self.get_position(children_count)
+
+            room = {
+                "name": frame.room_title_label.text(),
+                "code": frame.room_code_label.text(),
+                "time": frame.room_time_label.text(),
+                "days": frame.room_day_label.text().split()
+            }
+
+            window.grid_layout.addWidget(
+                EditRoomFrame(room["name"], room["code"], room["time"], room["days"]), pos[0], pos[1])
+            children_count += 1
+
+        self.close_window()
+
+    @staticmethod
+    def get_position(count):
+
+        row = math.ceil(count / 2) - 1
+
+        num = count / 2
+
+        if num.is_integer():
+            column = 1
+        else:
+            column = 0
+
+        position = (row, column)
+
+        return position
 
 
 class AddRoomWindow(RoomWindow):
@@ -359,8 +404,90 @@ class AddRoomWindow(RoomWindow):
         header_title = "Add Room Info: "
         super().__init__(header_title)
 
+    def save_info(self):
+        room = self.get_info()
+
+        edit_frame = EditRoomFrame(room["name"], room["code"], room["time"], room["days"])
+
+        grid_layout = window.grid_layout
+
+        children_count = len(window.findChildren(EditRoomFrame))
+        children_count += len(window.findChildren(AddRoomFrame))
+        children_count += 1
+
+        print(children_count)
+
+        pos = self.get_position(children_count)
+        print(pos)
+
+        grid_layout.addWidget(edit_frame, pos[0], pos[1])
+
+        self.close_window()
+
+    @staticmethod
+    def get_position(count):
+
+        row = math.ceil(count/2) - 1
+
+        num = count / 2
+
+        if num.is_integer():
+            column = 1
+        else:
+            column = 0
+
+        position = (row, column)
+
+        return position
+
+
+class MainWindow(QMainWindow):
+
+    def __init__(self):
+        super().__init__()
+
+        stylesheet = """
+
+            QScrollArea {
+                background-color: white
+            }
+
+        """
+
+        self.setFixedHeight(400)
+        self.setMinimumWidth(520)
+        self.setWindowTitle("Google Meet Auto Joiner")
+        self.setStyleSheet(stylesheet)
+
+        self.create_window_contents()
+
+    def create_window_contents(self):
+        self.add_room_frame = AddRoomFrame()
+
+        self.grid_layout = QGridLayout()
+        self.grid_layout.setVerticalSpacing(0)
+        self.grid_layout.setContentsMargins(0, 10, 0, 0)
+
+        self.grid_layout.addWidget(self.add_room_frame, 0, 0)
+        self.grid_layout.addWidget(QWidget(), 0, 1)
+
+        vbox = QVBoxLayout()
+        vbox.addLayout(self.grid_layout)
+        vbox.addStretch()
+
+        self.central_widget = QWidget()
+        self.central_widget.setLayout(vbox)
+
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setFrameShape(QFrame.NoFrame)
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setWidget(self.central_widget)
+
+        self.setCentralWidget(self.scroll_area)
+
 
 app = QApplication(sys.argv)
+app.setStyle("Fusion")
 window = MainWindow()
 window.show()
 app.exec()
