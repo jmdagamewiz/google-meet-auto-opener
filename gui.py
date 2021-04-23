@@ -8,6 +8,9 @@ import math
 
 
 class Room:
+    """
+    room as an object
+    """
 
     def __init__(self, name, code, time, days_list):
         self.name = name
@@ -17,6 +20,10 @@ class Room:
 
 
 class EditRoomFrame(QFrame):
+    """
+    clickable, editable frame that contains all information
+    about an individual scheduled Google Meet room
+    """
 
     def __init__(self, room):
         super().__init__()
@@ -106,6 +113,7 @@ class EditRoomFrame(QFrame):
 
     def room_frame_clicked(self, mouse_click):
 
+        # creates instance of EditRoomWindow for its own
         self.edit_room_window = EditRoomWindow(self)
 
         point = QPoint(50, 50)
@@ -113,6 +121,7 @@ class EditRoomFrame(QFrame):
         self.edit_room_window.move(global_point)
         self.edit_room_window.show()
 
+        # sets up inputs to based on EditRoomFrame's labels' texts
         self.edit_room_window.name_input.setText(self.room.name)
         self.edit_room_window.code_input.setText(self.room.code)
 
@@ -123,6 +132,9 @@ class EditRoomFrame(QFrame):
 
 
 class AddRoomFrame(QFrame):
+    """
+    clickable frame used for adding new EditRoomFrame instances to MainWindow
+    """
 
     def __init__(self):
         super().__init__()
@@ -161,8 +173,8 @@ class AddRoomFrame(QFrame):
         self.setLayout(self.add_room_frame_layout)
 
     def add_room_clicked(self, mouse_click):
-        """opens window getting user inputs for room creation"""
 
+        # opens AddFrameWindow which gets information about a room
         self.add_room_window = AddRoomWindow()
 
         point = QPoint(50, 50)
@@ -173,6 +185,9 @@ class AddRoomFrame(QFrame):
 
 
 class DaysWidget(QWidget):
+    """
+    custom widget containing the 7 days of a week as toggleable buttons
+    """
 
     def __init__(self):
         super().__init__()
@@ -202,6 +217,7 @@ class DaysWidget(QWidget):
             button.setStyleSheet("background-color: light gray")
 
     def checked_buttons_text(self):
+        """returns a list of the days which were checked"""
 
         days = []
         for button in self.button_group.buttons():
@@ -211,6 +227,7 @@ class DaysWidget(QWidget):
         return days
 
     def check_buttons(self, days_list):
+        """checks the buttons corresponding to the days given from a list"""
 
         buttons = self.button_group.buttons()
 
@@ -221,6 +238,10 @@ class DaysWidget(QWidget):
 
 
 class RoomWindow(QWidget):
+    """
+    super class for EditRoomWindow and AddRoomWindow because they look
+    the same except for the delete button found in the top right corner
+    """
 
     def __init__(self, header_title):
         super().__init__()
@@ -455,6 +476,7 @@ class MainWindow(QMainWindow):
         self.create_window_contents()
 
     def create_window_contents(self):
+
         self.grid_layout = QGridLayout()
         self.grid_layout.setVerticalSpacing(0)
         self.grid_layout.setContentsMargins(0, 10, 0, 0)
