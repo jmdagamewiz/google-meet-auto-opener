@@ -5,18 +5,33 @@ from PyQt5.QtGui import QCursor
 import sys
 
 import math
+from database import RoomDatabase
 
 
 class Room:
-    """
-    room as an object
-    """
+    """creates room object for Google Meet room"""
 
     def __init__(self, name, code, time, days_list):
+        """
+        :param name: string containing name of meet room
+        :param code: string containing meet room code in xxx-yyyy-zzz format or meet room nickname
+        :param time: string containing time in h:mm AP format
+        :param days_list: list containing days of week
+        """
+
         self.name = name
         self.code = code
         self.time = time
         self.days_list = days_list
+        self.days_str = self.days_strflist(self.days_list)
+
+    @staticmethod
+    def days_strflist(days_list):
+        return " ".join(days_list)
+
+    @staticmethod
+    def days_listfstr(days_string):
+        return days_string.split()
 
 
 class EditRoomFrame(QFrame):
@@ -38,7 +53,7 @@ class EditRoomFrame(QFrame):
                 border-radius: 16;
                 margin: 10px;
             }
-        
+
             QLabel#roomTitle {
                 font-size: 20px;
                 color: white;
@@ -46,18 +61,18 @@ class EditRoomFrame(QFrame):
                 padding-top: 10px;
                 padding-bottom: 10px;
             }    
-            
+
             QWidget#header {
                 background-color: orange;
                 border-top-left-radius: 14;
                 border-top-right-radius: 14
             }
-            
+
             QLabel#code, QLabel#time, QLabel#days {
                 padding-left: 10px;
                 padding-bottom: 2px;
             }
-            
+
             QLabel#code {
                 font-weight: bold;
                 padding-top: 6px;
@@ -112,7 +127,6 @@ class EditRoomFrame(QFrame):
         self.setLayout(self.vbox_layout)
 
     def room_frame_clicked(self, mouse_click):
-
         # creates instance of EditRoomWindow for its own
         self.edit_room_window = EditRoomWindow(self)
 
@@ -173,7 +187,6 @@ class AddRoomFrame(QFrame):
         self.setLayout(self.add_room_frame_layout)
 
     def add_room_clicked(self, mouse_click):
-
         # opens AddFrameWindow which gets information about a room
         self.add_room_window = AddRoomWindow()
 
@@ -338,10 +351,9 @@ class RoomWindow(QWidget):
         self.setLayout(vbox)
 
     def save_info(self):
-        room = self.get_info()
-        # TODO: put code to save info to database here
+        room = self.get_room_object()
 
-    def get_info(self):
+    def get_room_object(self):
 
         name = self.name_input.text()
         code = self.code_input.text()
@@ -389,20 +401,24 @@ class EditRoomWindow(RoomWindow):
         self.delete_room_button.show()
 
     def save_info(self):
-        room = self.get_info()
+        name = self.edit_room_frame.name_label.text()
+        code = self.edit_room_frame.code_label.text()
+        time = self.edit_room_frame.time_label.text()
+        days = self.edit_room_frame.days_label.text()
+
+        old_room = Room(name, code, time, days)
+        new_room = self.get_room_object()
+
+        window.database.update_room(old_room, new_room)
 
         # Updates attributes of EditRoomFrame instance
-        self.edit_room_frame.room = room
+        self.edit_room_frame.room = new_room
 
         # Updates labels of EditRoomFrame instance
-        self.edit_room_frame.name_label.setText(room.name)
-        self.edit_room_frame.code_label.setText(room.code)
-        self.edit_room_frame.time_label.setText(room.time)
-
-        days_string = " ".join(room.days_list)
-        self.edit_room_frame.days_label.setText(days_string)
-
-        # TODO: add code to save update info on database
+        self.edit_room_frame.name_label.setText(new_room.name)
+        self.edit_room_frame.code_label.setText(new_room.code)
+        self.edit_room_frame.time_label.setText(new_room.time)
+        self.edit_room_frame.days_label.setText(Room.days_strflist(new_room.days_list))
 
         self.close_window()
 
@@ -410,6 +426,9 @@ class EditRoomWindow(RoomWindow):
 
         # deletes current EditRoomFrame but leaves a 'hole' in the GridLayout
         self.edit_room_frame.deleteLater()
+
+        room = self.edit_room_frame.room
+        window.database.delete_room(room)
 
         # gets list of all EditRoomFrame instances in MainWindow
         parent_widget = self.edit_room_frame.parentWidget()
@@ -421,16 +440,21 @@ class EditRoomWindow(RoomWindow):
         for frame in edit_room_frames_list:
             frame.deleteLater()
 
-        children_count = 2
+        add_room_frame = parent_widget.findChild(AddRoomFrame)
+        add_room_frame.deleteLater()
+
+        children_count = 1
 
         for frame in edit_room_frames_list:
             pos = self.get_position(children_count)
-
             room = frame.room
-
             window.grid_layout.addWidget(
                 EditRoomFrame(room), pos[0], pos[1])
             children_count += 1
+
+        if children_count == 1:
+            # blank widget to keep grid with 2 columns at initial
+            window.grid_layout.addWidget(QWidget(), 0, 1)
 
         self.close_window()
 
@@ -442,18 +466,29 @@ class AddRoomWindow(RoomWindow):
         super().__init__(header_title)
 
     def save_info(self):
-        room = self.get_info()
+        room = self.get_room_object()
+
+        # saves to database
+        window.database.save_room(room)
+
+        # adding room frame to window
 
         edit_frame = EditRoomFrame(room)
-
         grid_layout = window.grid_layout
 
         children_count = len(window.findChildren(EditRoomFrame))
-        children_count += len(window.findChildren(AddRoomFrame))
         children_count += 1
 
         pos = self.get_position(children_count)
+
+        # new edit frame simply replaces add room frame
         grid_layout.addWidget(edit_frame, pos[0], pos[1])
+
+        children_count += 1
+
+        self.add_room_frame = AddRoomFrame()
+        pos = self.get_position(children_count)
+        window.grid_layout.addWidget(self.add_room_frame, pos[0], pos[1])
 
         self.close_window()
 
@@ -462,6 +497,8 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
+
+        self.database = RoomDatabase()
 
         stylesheet = """
             QScrollArea {
@@ -481,11 +518,28 @@ class MainWindow(QMainWindow):
         self.grid_layout.setVerticalSpacing(0)
         self.grid_layout.setContentsMargins(0, 10, 0, 0)
 
-        self.add_room_frame = AddRoomFrame()
-        self.grid_layout.addWidget(self.add_room_frame, 0, 0)
+        rooms = self.database.get_all_rooms()
 
-        # blank widget to keep grid with 2 columns at initial
-        self.grid_layout.addWidget(QWidget(), 0, 1)
+        children_count = 1
+
+        # rooms is a list containing a room tuple from database
+        for room_tuple in rooms:
+            room = Room(room_tuple[0], room_tuple[1], room_tuple[2], room_tuple[3])
+            edit_room_frame = EditRoomFrame(room)
+            pos = self.get_position(children_count)
+
+            self.grid_layout.addWidget(
+                edit_room_frame, pos[0], pos[1])
+            children_count += 1
+
+        self.add_room_frame = AddRoomFrame()
+        pos = self.get_position(children_count)
+        self.grid_layout.addWidget(self.add_room_frame, pos[0], pos[1])
+
+        if children_count == 1:
+            # blank widget to keep grid with 2 columns at initial
+            # if grid contains only 1 room frame only (Add Room only)
+            self.grid_layout.addWidget(QWidget(), 0, 1)
 
         vbox = QVBoxLayout()
         vbox.addLayout(self.grid_layout)
@@ -501,10 +555,31 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(self.scroll_area)
 
+    @staticmethod
+    def get_position(count):
+        """
+        finds next available position to add frame to grid layout (2 column grid)
+        :param count: nth widget to be added
+        :return: position tuple
+        """
 
-app = QApplication(sys.argv)
-app.setStyle("Fusion")
-window = MainWindow()
-window.show()
-app.exec()
+        row = math.ceil(count / 2) - 1
 
+        num = count / 2
+
+        if num.is_integer():
+            column = 1
+        else:
+            column = 0
+
+        position = (row, column)
+
+        return position
+
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    app.setStyle("Fusion")
+    window = MainWindow()
+    window.show()
+    app.exec()
