@@ -25,24 +25,29 @@ class RoomDatabase:
                             f" '{room.time}', '{' '.join(room.days_list)}')")
         self._commit()
 
-    def update_room(self, old_room, new_room):
+    def edit_room(self, room_id, new_room):
         """updates room information"""
         self.cursor.execute(f"""UPDATE rooms SET name='{new_room.name}', code='{new_room.code}', time='{new_room.time}', 
-                days='{' '.join(new_room.days_list)}' WHERE name='{old_room.name}' AND code='{old_room.code}'
+                days='{' '.join(new_room.days_list)}' WHERE rowid='{room_id}'
             """)
         self._commit()
 
-    def delete_room(self, room):
+    def delete_room(self, rowid):
         """removes room object from database"""
-        self.cursor.execute(f"DELETE from rooms WHERE name='{room.name}' AND code='{room.code}'")
+        self.cursor.execute(f"DELETE from rooms WHERE rowid='{rowid}'")
         self._commit()
 
     def get_all_rooms(self):
         """retrieves all room objects in database"""
-        self.cursor.execute("SELECT * from rooms")
+        self.cursor.execute("SELECT rowid, * from rooms")
         rooms = self.cursor.fetchall()
 
         return rooms
+
+    def get_room(self, id):
+        """retrieves a room object based on rowid"""
+        self.cursor.execute(f"SELECT rowid, * from rooms WHERE rowid='{id}'")
+        return self.cursor.fetchone()
 
     def _table_exists(self):
         """ check if rooms table exists """
