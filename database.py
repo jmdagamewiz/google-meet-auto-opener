@@ -1,10 +1,12 @@
 import sqlite3
+import os
 
 
 class RoomDatabase:
     """database for saving, reading, updating, and deleting data for room objects"""
 
-    DB_LOCATION = "data/rooms.db"
+    dir_path = os.path.dirname(os.path.abspath(__file__))
+    DB_LOCATION = os.path.join(dir_path, "data\\rooms.db")
 
     def __init__(self):
         self.connection = sqlite3.connect(RoomDatabase.DB_LOCATION)
