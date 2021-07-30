@@ -1,19 +1,22 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 import webbrowser
 import time
+import os
 
 
 def open_meet_room(code):
     webbrowser.open(f"https://www.meet.google.com/{code}")
 
 
+# gets path of DB Location based on user
+dir_path = os.path.dirname(os.path.abspath(__file__))
+DB_LOCATION = os.path.join(dir_path, "data\\rooms.db")
+
 scheduler = BackgroundScheduler()
-scheduler.add_jobstore('sqlalchemy', url='sqlite:///data/scheduler_jobs.db')
+scheduler.add_jobstore('sqlalchemy', url=f'sqlite:///{DB_LOCATION}')
 
 if __name__ == "__main__":
-
     scheduler.start()
-    print(scheduler.get_jobs())
 
     while True:
         time.sleep(1)
