@@ -1,0 +1,9 @@
+APScheduler==3.7.0
+greenlet==1.1.0
+pytz==2021.1
+pywin32==301
+six==1.16.0
+SQLAlchemy==1.4.22
+tzlocal==2.1
+winshell==0.6
+WMI==1.5.1
