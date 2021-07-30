@@ -95,7 +95,6 @@ class Window:
                           schedule_path], )
 
     def run(self):
-        print("Scheduled Rooms:")
         print("\t" + "ID".ljust(3) + "Name".ljust(20) + "Code".ljust(15) + "Time".ljust(10) + "Days".ljust(15))
 
         for room in self.database.get_all_rooms():
