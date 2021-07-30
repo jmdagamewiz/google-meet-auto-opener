@@ -10,7 +10,7 @@ def open_meet_room(code):
 
 # gets path of DB Location based on user
 dir_path = os.path.dirname(os.path.abspath(__file__))
-DB_LOCATION = os.path.join(dir_path, "data\\rooms.db")
+DB_LOCATION = os.path.join(dir_path, "data\\scheduler_jobs.db")
 
 scheduler = BackgroundScheduler()
 scheduler.add_jobstore('sqlalchemy', url=f'sqlite:///{DB_LOCATION}')
