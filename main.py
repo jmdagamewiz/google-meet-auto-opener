@@ -16,8 +16,8 @@ class Room:
         """
         :param name: string containing name of meet room
         :param code: string containing meet room code in xxx-yyyy-zzz format or meet room nickname
-        :param time_scheduled: string containing time in h:mm AP format
-        :param days_list: list containing days of week
+        :param time_scheduled: string containing time in hh:mm AP format
+        :param days_list: list containing days of week in M T W Th F S Su
         """
 
         self.name = name
@@ -36,6 +36,11 @@ class Room:
 
     @staticmethod
     def days_longstr(days_string):
+        """
+        :param days_string: string format M T W Th F S Su
+        :return: string format mon,tue,wed,thu,fri,sat,sun
+        """
+
         days_conversion = {
             'M': 'mon',
             'T': 'tue',
@@ -59,12 +64,14 @@ class Window:
 
         self.scheduler = scheduler
         self.scheduler.start(paused=True)
-        self.scheduler.print_jobs()
 
         self.database = RoomDatabase()
 
     def create_job_from_room(self, room):
-        """creates job object for scheduler using room object"""
+        """
+        :param room: Room object
+        :return: apscheduler Job object
+        """
 
         time_obj = time.strptime(room.time, "%I:%M %p")
         days_of_week_str = Room.days_longstr(Room.days_strflist(room.days_list))
@@ -95,6 +102,7 @@ class Window:
                           schedule_path], )
 
     def run(self):
+        print("Google Meet Auto Opener")
         print("\t" + "ID".ljust(3) + "Name".ljust(20) + "Code".ljust(15) + "Time".ljust(10) + "Days".ljust(15))
 
         for room in self.database.get_all_rooms():
