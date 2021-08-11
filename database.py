@@ -2,6 +2,42 @@ import sqlite3
 import os
 
 
+class Room:
+    """creates room object for Google Meet room"""
+
+    def __init__(self, name, code, time, days):
+        """
+        :param name: string containing name of meet room
+        :param code: string containing google meet room code in xxx-yyyy-zzz format
+        :param time: string containing time in h:mm AP format
+        :param days: string containing days of week
+        """
+
+        self.name = name
+        self.code = code
+        self.time = time
+        self.days = days
+        self.days_longstr = self.get_days_longstr(days)
+
+    @staticmethod
+    def get_days_longstr(days_string):
+        days_conversion = {
+            'M': 'mon',
+            'T': 'tue',
+            'W': 'wed',
+            'Th': 'thu',
+            'F': 'fri',
+            'S': 'sat',
+            'Su': 'sun',
+        }
+        new_days_list = []
+        days_list = days_string.split()
+        for day in days_list:
+            new_days_list.append(days_conversion[day])
+
+        return ",".join(new_days_list)
+
+
 class RoomDatabase:
     """database for saving, reading, updating, and deleting data for room objects"""
 
@@ -24,32 +60,34 @@ class RoomDatabase:
     def save_room(self, room):
         """adds room object to database"""
         self.cursor.execute(f"INSERT INTO rooms VALUES('{room.name}', '{room.code}',"
-                            f" '{room.time}', '{' '.join(room.days_list)}')")
+                            f" '{room.time}', '{room.days}')")
         self._commit()
 
-    def edit_room(self, room_id, new_room):
+    def edit_room(self, old_room, new_room):
         """updates room information"""
         self.cursor.execute(f"""UPDATE rooms SET name='{new_room.name}', code='{new_room.code}', time='{new_room.time}', 
-                days='{' '.join(new_room.days_list)}' WHERE rowid='{room_id}'
+                days='{new_room.days}' WHERE name='{old_room.name}' AND code='{old_room.code}' AND
+                time='{old_room.time}'AND days='{old_room.days}'
             """)
         self._commit()
 
-    def delete_room(self, rowid):
+    def delete_room(self, room):
         """removes room object from database"""
-        self.cursor.execute(f"DELETE from rooms WHERE rowid='{rowid}'")
+        self.cursor.execute(f"""DELETE from rooms WHERE name='{room.name}' AND code='{room.code}' AND
+                time='{room.time}'AND days='{room.days}'
+            """)
         self._commit()
 
     def get_all_rooms(self):
         """retrieves all room objects in database"""
         self.cursor.execute("SELECT rowid, * from rooms")
-        rooms = self.cursor.fetchall()
+        room_rows = self.cursor.fetchall()
+
+        rooms = []
+        for room_row in room_rows:
+            rooms.append(Room(room_row[1], room_row[2], room_row[3], room_row[4]))
 
         return rooms
-
-    def get_room(self, id):
-        """retrieves a room object based on rowid"""
-        self.cursor.execute(f"SELECT rowid, * from rooms WHERE rowid='{id}'")
-        return self.cursor.fetchone()
 
     def _table_exists(self):
         """ check if rooms table exists """
