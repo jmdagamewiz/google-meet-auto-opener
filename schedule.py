@@ -5,7 +5,7 @@ import os
 
 
 def open_meet_room(code):
-    webbrowser.open(f"https://www.meet.google.com/{code}")
+    webbrowser.open(f"https://meet.google.com/{code}")
 
 
 # gets path of DB Location based on user
