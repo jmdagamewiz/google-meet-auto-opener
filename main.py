@@ -6,10 +6,10 @@ import wmi
 import pythoncom
 from apscheduler.triggers.cron import CronTrigger
 
-from PyQt5.QtCore import QSize, Qt, QRunnable, QThreadPool
+from PyQt5.QtCore import QSize, Qt, QRunnable, QThreadPool, QTime
 from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel
-from PyQt5.QtWidgets import QPushButton, QListWidget, QListWidgetItem, QFormLayout, QLineEdit
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QButtonGroup
+from PyQt5.QtWidgets import QPushButton, QListWidget, QListWidgetItem, QFormLayout, QLineEdit, QTimeEdit
 
 from database import RoomDatabase, Room
 from schedule import scheduler, open_meet_room
@@ -35,6 +35,49 @@ class RestartSchedulerWorker(QRunnable):
         # runs background process of scheduler
         subprocess.Popen([sys.executable.replace("python", "pythonw"),
                           schedule_path], )
+
+
+class DaysEdit(QWidget):
+
+    def __init__(self):
+        super().__init__()
+
+        self.layout = QHBoxLayout()
+        self.setLayout(self.layout)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+
+        self.button_group = QButtonGroup()
+        self.button_group.setExclusive(False)
+
+        days_list = ["M", "T", "W", "Th", "F", "S", "Su"]
+
+        for i in range(len(days_list)):
+            push_button = QPushButton(days_list[i])
+            push_button.setFixedWidth(48)
+            push_button.setCheckable(True)
+
+            self.button_group.addButton(push_button, i+1)
+            self.layout.addWidget(push_button)
+
+    def get_clicked_buttons(self):
+        days_list = []
+
+        for button in self.button_group.buttons():
+            if button.isChecked():
+                days_list.append(button.text())
+
+        return " ".join(days_list)
+
+    def uncheck_buttons(self):
+        for button in self.button_group.buttons():
+            button.setChecked(False)
+
+    def check_buttons_with_days(self, days_str):
+        days_list = days_str.split()
+
+        for button in self.button_group.buttons():
+            if button.text() in days_list:
+                button.setChecked(True)
 
 
 class MainWindow(QMainWindow):
@@ -109,12 +152,13 @@ class MainWindow(QMainWindow):
         self.form_layout.addRow(self.code_label, self.code_input)
 
         self.time_label = QLabel("Time: ")
-        self.time_input = QLineEdit()
+        self.time_input = QTimeEdit()
+        self.time_input.setTime(QTime(7, 30, 0))
 
         self.form_layout.addRow(self.time_label, self.time_input)
 
         self.days_label = QLabel("Days: ")
-        self.days_input = QLineEdit()
+        self.days_input = DaysEdit()
 
         self.form_layout.addRow(self.days_label, self.days_input)
 
@@ -152,13 +196,13 @@ class MainWindow(QMainWindow):
         name = self.name_input.text().strip()
         code = self.code_input.text().strip()
         time = self.time_input.text().strip()
-        days = self.days_input.text().strip()
+        days = self.days_input.get_clicked_buttons()
+
         new_room = Room(name, code, time, days)
 
         if self.add_button.isEnabled():
             self.list_widget.addItem(QListWidgetItem(
                 f"{new_room.name}   {new_room.code}   {new_room.time}   {new_room.days}"))
-            self.clear_form_inputs()
 
             self.database.save_room(new_room)
 
@@ -187,8 +231,8 @@ class MainWindow(QMainWindow):
 
         self.name_input.clear()
         self.code_input.clear()
-        self.time_input.clear()
-        self.days_input.clear()
+        self.time_input.setTime(QTime(7, 30, 0))
+        self.days_input.uncheck_buttons()
 
     def disable_form_inputs(self):
         self.name_input.setEnabled(False)
@@ -209,8 +253,11 @@ class MainWindow(QMainWindow):
     def set_form_inputs(self, name, code, time, days):
         self.name_input.setText(name)
         self.code_input.setText(code)
-        self.time_input.setText(time)
-        self.days_input.setText(days)
+
+        time = QTime.fromString(time, "h:mm AP")
+        self.time_input.setTime(time)
+
+        self.days_input.check_buttons_with_days(days)
 
     def list_item_clicked(self):
         self.add_button.setEnabled(False)
@@ -221,8 +268,10 @@ class MainWindow(QMainWindow):
 
         item = self.list_widget.currentItem()
         name, code, time, days = item.text().split("   ")
+        self.clear_form_inputs()
         self.set_form_inputs(name, code, time, days)
 
+        self.disable_form_inputs()
         self.disable_form_inputs()
 
     def unselect_list_item(self):
@@ -286,7 +335,8 @@ class MainWindow(QMainWindow):
         self.thread_pool.start(thread)
 
 
-app = QApplication([])
-window = MainWindow()
-window.show()
-app.exec_()
+if __name__ == '__main__':
+    app = QApplication([])
+    window = MainWindow()
+    window.show()
+    app.exec_()

@@ -1,4 +1,5 @@
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 import webbrowser
 import time
 import os
@@ -13,7 +14,7 @@ dir_path = os.path.dirname(os.path.abspath(__file__))
 DB_LOCATION = os.path.join(dir_path, "data\\scheduler_jobs.db")
 
 scheduler = BackgroundScheduler()
-scheduler.add_jobstore('sqlalchemy', url=f'sqlite:///{DB_LOCATION}')
+scheduler.add_jobstore(SQLAlchemyJobStore(f'sqlite:///{DB_LOCATION}'))
 
 if __name__ == "__main__":
     scheduler.start()
