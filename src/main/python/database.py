@@ -1,5 +1,5 @@
 import sqlite3
-import os
+from base import application_context
 
 
 class Room:
@@ -41,8 +41,9 @@ class Room:
 class RoomDatabase:
     """database for saving, reading, updating, and deleting data for room objects"""
 
-    dir_path = os.path.dirname(os.path.abspath(__file__))
-    DB_LOCATION = os.path.join(dir_path, "data\\rooms.db")
+    # dir_path = os.path.dirname(os.path.abspath(__file__))
+    # DB_LOCATION = os.path.join(dir_path, "../resources/base/rooms.db")
+    DB_LOCATION = application_context.get_resource("rooms.db")
 
     def __init__(self):
         self.connection = sqlite3.connect(RoomDatabase.DB_LOCATION)

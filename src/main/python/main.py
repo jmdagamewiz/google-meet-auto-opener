@@ -1,40 +1,13 @@
-import os
-import subprocess
 import sys
-import time
-import wmi
-import pythoncom
 from apscheduler.triggers.cron import CronTrigger
 
-from PyQt5.QtCore import QSize, Qt, QRunnable, QThreadPool, QTime
+from PyQt5.QtCore import QSize, Qt, QTime
 from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QButtonGroup
+from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QButtonGroup
 from PyQt5.QtWidgets import QPushButton, QListWidget, QListWidgetItem, QFormLayout, QLineEdit, QTimeEdit
 
 from database import RoomDatabase, Room
 from schedule import scheduler, open_meet_room
-
-
-class RestartSchedulerWorker(QRunnable):
-
-    def run(self):
-        """stops and runs scheduler for new jobs to be added to it"""
-
-        pythoncom.CoInitialize()
-
-        # stops background process of scheduler
-        f = wmi.WMI()
-        for process in f.Win32_Process():
-            if process.name == "pythonw.exe":
-                process.Terminate()
-                break
-
-        dir_path = os.path.dirname(os.path.abspath(__file__))
-        schedule_path = os.path.join(dir_path, "schedule.py")
-
-        # runs background process of scheduler
-        subprocess.Popen([sys.executable.replace("python", "pythonw"),
-                          schedule_path], )
 
 
 class DaysEdit(QWidget):
@@ -68,11 +41,11 @@ class DaysEdit(QWidget):
 
         return " ".join(days_list)
 
-    def uncheck_buttons(self):
+    def clear_clicked_buttons(self):
         for button in self.button_group.buttons():
             button.setChecked(False)
 
-    def check_buttons_with_days(self, days_str):
+    def click_these_buttons(self, days_str):
         days_list = days_str.split()
 
         for button in self.button_group.buttons():
@@ -90,9 +63,7 @@ class MainWindow(QMainWindow):
 
         self.database = RoomDatabase()
         self.scheduler = scheduler
-        self.scheduler.start(paused=True)
-
-        self.thread_pool = QThreadPool()
+        self.scheduler.start()
 
         # header
         self.header_layout = QHBoxLayout()
@@ -224,7 +195,6 @@ class MainWindow(QMainWindow):
 
             self.create_job_from_room(new_room)
 
-        self.restart_scheduler()
         self.disable_form_inputs()
 
     def clear_form_inputs(self):
@@ -232,7 +202,7 @@ class MainWindow(QMainWindow):
         self.name_input.clear()
         self.code_input.clear()
         self.time_input.setTime(QTime(7, 30, 0))
-        self.days_input.uncheck_buttons()
+        self.days_input.clear_clicked_buttons()
 
     def disable_form_inputs(self):
         self.name_input.setEnabled(False)
@@ -257,7 +227,7 @@ class MainWindow(QMainWindow):
         time = QTime.fromString(time, "h:mm AP")
         self.time_input.setTime(time)
 
-        self.days_input.check_buttons_with_days(days)
+        self.days_input.click_these_buttons(days)
 
     def list_item_clicked(self):
         self.add_button.setEnabled(False)
@@ -320,23 +290,22 @@ class MainWindow(QMainWindow):
     def create_job_from_room(self, room):
         """creates job object for scheduler using room object"""
 
-        time_obj = time.strptime(room.time, "%I:%M %p")
+        time_obj = QTime.fromString(room.time, "h:mm AP")
+
         days_of_week_str = room.days_longstr
 
-        trigger = CronTrigger(day_of_week=days_of_week_str, hour=time_obj.tm_hour, minute=time_obj.tm_min)
+        trigger = CronTrigger(day_of_week=days_of_week_str, hour=time_obj.hour(), minute=time_obj.minute())
 
         job_id = f"{room.name}_{room.code}_{room.time}_{room.days}"
         job = self.scheduler.add_job(open_meet_room, args=[room.code],
                                      trigger=trigger, id=job_id,
                                      misfire_grace_time=10)
 
-    def restart_scheduler(self):
-        thread = RestartSchedulerWorker()
-        self.thread_pool.start(thread)
-
 
 if __name__ == '__main__':
-    app = QApplication([])
+    from base import application_context
+
     window = MainWindow()
     window.show()
-    app.exec_()
+    exit_code = application_context.app.exec_()
+    sys.exit(exit_code)
