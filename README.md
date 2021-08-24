@@ -4,14 +4,14 @@
  ### What it does:
  1. Opens a Google Meet room in your default browser based on given meet code at a scheduled time and date.
 
-### How to Use:
- 1. Download this repository and create venv.
- 2. Install dependencies (`pip install requirements.txt`)
- 3. Run initial.py and restart your PC (or go to Startup folder and run file named "Scheduler.lnk")
- 4. Run main.py to use the application.
+ ### How to use:
+ 
+ 1. Click add button to create schedule for a room. <br/> 
+ Fill out the needed information and click save.
+ 
+  ![Add](images/window_1.png)
+  
+ 2. Click on a room from the list to edit / delete scheduled room. <br/>
+ Click unselect to add room again.
 
-### Input Formats:
- 1. Room name - Any
- 2. Room code - xxx-yyyy-zzz format
- 3. Room time - hh:mm AP (ex. 3:00 PM, 0:45 AM)
- 4. Room days - Single letter with 1 space between (M T W Th F S Su)
+ ![Edit/Delete](images/window_2.png)
