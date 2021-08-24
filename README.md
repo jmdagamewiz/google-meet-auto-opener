@@ -15,3 +15,6 @@
  Click unselect to add room again.
 
  ![Edit/Delete](images/window_2.png)
+ 
+ 3. Keep the app open in the background. The app will automatically <br/>
+ open your Google Meet room in your default browser like Google.
