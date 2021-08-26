@@ -41,8 +41,6 @@ class Room:
 class RoomDatabase:
     """database for saving, reading, updating, and deleting data for room objects"""
 
-    # dir_path = os.path.dirname(os.path.abspath(__file__))
-    # DB_LOCATION = os.path.join(dir_path, "../resources/base/rooms.db")
     DB_LOCATION = application_context.get_resource("rooms.db")
 
     def __init__(self):
@@ -60,23 +58,39 @@ class RoomDatabase:
 
     def save_room(self, room):
         """adds room object to database"""
-        self.cursor.execute(f"INSERT INTO rooms VALUES('{room.name}', '{room.code}',"
-                            f" '{room.time}', '{room.days}')")
+        self.cursor.execute("INSERT INTO rooms VALUES(?, ?, ?, ?)", (room.name, room.code, room.time, room.days))
         self._commit()
 
     def edit_room(self, old_room, new_room):
         """updates room information"""
-        self.cursor.execute(f"""UPDATE rooms SET name='{new_room.name}', code='{new_room.code}', time='{new_room.time}', 
-                days='{new_room.days}' WHERE name='{old_room.name}' AND code='{old_room.code}' AND
-                time='{old_room.time}'AND days='{old_room.days}'
-            """)
+
+        _params = {
+            "new_name": new_room.name,
+            "new_code": new_room.code,
+            "new_time": new_room.time,
+            "new_days": new_room.days,
+            "old_name": old_room.name,
+            "old_code": old_room.code,
+            "old_time": old_room.time,
+            "old_days": old_room.days,
+        }
+
+        self.cursor.execute("""UPDATE rooms SET name=:new_name, code=:new_code, time=:new_time, days=:new_days
+                WHERE name=:old_name AND code=:old_code AND time=:old_time AND days=:old_days""", _params)
+
         self._commit()
 
     def delete_room(self, room):
         """removes room object from database"""
-        self.cursor.execute(f"""DELETE from rooms WHERE name='{room.name}' AND code='{room.code}' AND
-                time='{room.time}'AND days='{room.days}'
-            """)
+
+        _params = {
+            "name": room.name,
+            "code": room.code,
+            "time": room.time,
+            "days": room.days
+        }
+
+        self.cursor.execute("DELETE from rooms WHERE name=:name AND code=:code AND time=:time AND days=:days", _params)
         self._commit()
 
     def get_all_rooms(self):

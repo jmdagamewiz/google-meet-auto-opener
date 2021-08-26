@@ -1,8 +1,9 @@
 import sys
+from datetime import datetime
 from apscheduler.triggers.cron import CronTrigger
 
-from PyQt5.QtCore import QSize, Qt, QTime
-from PyQt5.QtGui import QFont
+from PyQt5.QtCore import QSize, Qt, QTime, QRegExp
+from PyQt5.QtGui import QFont, QRegExpValidator
 from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QButtonGroup
 from PyQt5.QtWidgets import QPushButton, QListWidget, QListWidgetItem, QFormLayout, QLineEdit, QTimeEdit
 
@@ -11,6 +12,8 @@ from schedule import scheduler, open_meet_room
 
 
 class DaysEdit(QWidget):
+
+    days_of_week_list = ["M", "T", "W", "Th", "F", "S", "Su"]
 
     def __init__(self):
         super().__init__()
@@ -22,10 +25,8 @@ class DaysEdit(QWidget):
         self.button_group = QButtonGroup()
         self.button_group.setExclusive(False)
 
-        days_list = ["M", "T", "W", "Th", "F", "S", "Su"]
-
-        for i in range(len(days_list)):
-            push_button = QPushButton(days_list[i])
+        for i in range(len(DaysEdit.days_of_week_list)):
+            push_button = QPushButton(DaysEdit.days_of_week_list[i])
             push_button.setFixedWidth(48)
             push_button.setCheckable(True)
 
@@ -39,13 +40,17 @@ class DaysEdit(QWidget):
             if button.isChecked():
                 days_list.append(button.text())
 
-        return " ".join(days_list)
+        if len(days_list) == 0:
+            return DaysEdit.days_of_week_list[datetime.today().weekday()]
 
-    def clear_clicked_buttons(self):
+        else:
+            return " ".join(days_list)
+
+    def unclick_all_buttons(self):
         for button in self.button_group.buttons():
             button.setChecked(False)
 
-    def click_these_buttons(self, days_str):
+    def click_buttons(self, days_str):
         days_list = days_str.split()
 
         for button in self.button_group.buttons():
@@ -99,7 +104,7 @@ class MainWindow(QMainWindow):
         self.footer_layout.addWidget(self.edit_button)
 
         self.delete_button = QPushButton("Delete")
-        self.delete_button.clicked.connect(self.delete_item)
+        self.delete_button.clicked.connect(self.delete_list_item)
         self.footer_layout.addWidget(self.delete_button)
         # end footer
 
@@ -114,11 +119,15 @@ class MainWindow(QMainWindow):
 
         self.name_label = QLabel("Name: ")
         self.name_input = QLineEdit()
+        self.name_input.setMaxLength(24)
 
         self.form_layout.addRow(self.name_label, self.name_input)
 
         self.code_label = QLabel("Code: ")
         self.code_input = QLineEdit()
+
+        regexp = QRegExp(r'[a-zA-Z]{3,3}-[a-zA-Z]{4,4}-[a-zA-Z]{3,3}')
+        self.code_input.setValidator(QRegExpValidator(regexp))
 
         self.form_layout.addRow(self.code_label, self.code_input)
 
@@ -164,12 +173,9 @@ class MainWindow(QMainWindow):
             self.list_widget.addItem(QListWidgetItem(f"{room.name}   {room.code}   {room.time}   {room.days}"))
 
     def save_form_info(self):
-        name = self.name_input.text().strip()
-        code = self.code_input.text().strip()
-        time = self.time_input.text().strip()
-        days = self.days_input.get_clicked_buttons()
+        form_inputs = self.get_form_inputs()
 
-        new_room = Room(name, code, time, days)
+        new_room = Room(form_inputs[0], form_inputs[1], form_inputs[2], form_inputs[3])
 
         if self.add_button.isEnabled():
             self.list_widget.addItem(QListWidgetItem(
@@ -178,6 +184,7 @@ class MainWindow(QMainWindow):
             self.database.save_room(new_room)
 
             self.create_job_from_room(new_room)
+            self.clear_form_inputs()
 
         else:
             item = self.list_widget.currentItem()
@@ -197,12 +204,20 @@ class MainWindow(QMainWindow):
 
         self.disable_form_inputs()
 
+    def get_form_inputs(self):
+        name = self.name_input.text().strip()
+        code = self.code_input.text().strip()
+        time = self.time_input.text().strip()
+        days = self.days_input.get_clicked_buttons()
+
+        return [name, code, time, days]
+
     def clear_form_inputs(self):
 
         self.name_input.clear()
         self.code_input.clear()
         self.time_input.setTime(QTime(7, 30, 0))
-        self.days_input.clear_clicked_buttons()
+        self.days_input.unclick_all_buttons()
 
     def disable_form_inputs(self):
         self.name_input.setEnabled(False)
@@ -227,7 +242,7 @@ class MainWindow(QMainWindow):
         time = QTime.fromString(time, "h:mm AP")
         self.time_input.setTime(time)
 
-        self.days_input.click_these_buttons(days)
+        self.days_input.click_buttons(days)
 
     def list_item_clicked(self):
         self.add_button.setEnabled(False)
@@ -255,7 +270,7 @@ class MainWindow(QMainWindow):
 
         self.clear_form_inputs()
 
-    def delete_item(self):
+    def delete_list_item(self):
         item = self.list_widget.currentItem()
         name, code, time, days = item.text().split("   ")
         room = Room(name, code, time, days)
@@ -278,17 +293,14 @@ class MainWindow(QMainWindow):
             self.edit_button.setEnabled(False)
             self.delete_button.setEnabled(False)
             self.unselect_button.setEnabled(False)
+            self.disable_form_inputs()
 
         else:
             item = self.list_widget.currentItem()
             name, code, time, days = item.text().split("   ")
             self.set_form_inputs(name, code, time, days)
 
-    def closeEvent(self, event):
-        self.database.close()
-
     def create_job_from_room(self, room):
-        """creates job object for scheduler using room object"""
 
         time_obj = QTime.fromString(room.time, "h:mm AP")
 
@@ -300,6 +312,9 @@ class MainWindow(QMainWindow):
         job = self.scheduler.add_job(open_meet_room, args=[room.code],
                                      trigger=trigger, id=job_id,
                                      misfire_grace_time=10)
+
+    def closeEvent(self, event):
+        self.database.close()
 
 
 if __name__ == '__main__':
